@@ -7,10 +7,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.listenme.Data.MyMusic
+import java.util.concurrent.TimeUnit
 
 class MusicViewmodel(application: Application) : AndroidViewModel(application) {
 
-    private var mediaPlayer: MediaPlayer = MediaPlayer()
+    var mediaPlayer: MediaPlayer = MediaPlayer()
 
     private val _playMusic = MutableLiveData<Boolean>()
     val playMusic: LiveData<Boolean>
@@ -36,15 +37,15 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
     val duration: LiveData<Int>
         get() = _duration
 
-    private val _seek = MutableLiveData<Int>()
-    val seek: LiveData<Int>
-        get() = _seek
+    private val _timing = MutableLiveData<Long>()
+    val timing: LiveData<Long>
+        get() = _timing
+
 
     fun startMusic(index: MyMusic) {
         if (mediaPlayer.isPlaying) {
             Log.d("Karan ", "Null")
             mediaPlayer.start()
-            _seek.postValue(mediaPlayer.currentPosition)
         } else {
             Log.d("Karan ", "null")
             mediaPlayer =
@@ -52,7 +53,7 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun playSong(song: MyMusic){
+    fun playSong(song: MyMusic) {
         if (mediaPlayer != MediaPlayer.create(getApplication(), song.music)) {
             mediaPlayer.stop()
             mediaPlayer.release()
@@ -68,11 +69,9 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
             _playMusic.postValue(true)
-            _seek.postValue(mediaPlayer.currentPosition)
         } else {
             mediaPlayer.start()
             _playMusic.postValue(false)
-            _seek.postValue(mediaPlayer.currentPosition)
         }
     }
 
@@ -92,13 +91,11 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         }
         if (mediaPlayer.isPlaying) {
             mediaPlayer.pause()
-            _seek.postValue(mediaPlayer.currentPosition)
             _playMusic.postValue(true)
         }
         mediaPlayer =
             MediaPlayer.create(getApplication<Application>().applicationContext, list[index].music)
         mediaPlayer.start()
-        _seek.postValue(mediaPlayer.currentPosition)
         _playMusic.postValue(false)
         _changeIndex.postValue(index)
         _currentIndex.postValue(index)
@@ -113,43 +110,54 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
             index = list.size - 1
         }
         if (mediaPlayer.isPlaying) {
-            _seek.postValue(mediaPlayer.currentPosition)
             mediaPlayer.pause()
             _playMusic.postValue(true)
         }
         mediaPlayer =
             MediaPlayer.create(getApplication<Application>().applicationContext, list[index].music)
         mediaPlayer.start()
-        _seek.postValue(mediaPlayer.currentPosition)
         _playMusic.postValue(false)
         _currentIndex.postValue(index)
         _previousIndex.postValue(index)
         _currentSong.postValue(list[index])
     }
 
-    fun setStart(myMusic: ArrayList<MyMusic>){
-        if (_currentSong.value == null){
+    fun setStart(myMusic: ArrayList<MyMusic>) {
+        if (_currentSong.value == null) {
             _currentSong.value = myMusic[0]
             _currentIndex.value = 0
             mediaPlayer = MediaPlayer.create(getApplication(), myMusic[0].music)
+            _duration.value = mediaPlayer.duration
             playMusic()
             _playMusic.value = false
         }
     }
 
 
-    fun changeSeek(position: Int){
+//    fun changeTime() : String {
+//        _timing.postValue(duration.value!!.toLong())
+//        return String.format(
+//            "%02d:%02d", TimeUnit.MILLISECONDS.toMinutes(_timing.value!!),
+//            TimeUnit.MILLISECONDS.toSeconds(_timing.value!!) - TimeUnit.MINUTES.toSeconds(
+//                (TimeUnit.MILLISECONDS.toMinutes(
+//                    _timing.value!!
+//                ))
+//            )
+//        )
+//    }
+
+
+    fun changeSeek(position: Int) {
         mediaPlayer.seekTo(position)
     }
 
-    fun pause(){
+    fun pause() {
         mediaPlayer.pause()
     }
 
     fun stopMusic() {
         mediaPlayer.stop()
     }
-
 
 
 }

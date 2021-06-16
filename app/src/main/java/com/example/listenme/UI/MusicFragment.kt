@@ -1,6 +1,7 @@
 package com.example.listenme.UI
 
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,8 @@ class MusicFragment() : Fragment() {
     lateinit var image: ImageView
     lateinit var rlImage: ImageView
     lateinit var name: TextView
+    lateinit var startDuration: TextView
+    lateinit var lastDuration: TextView
     lateinit var play: ImageView
     lateinit var pause: ImageView
     lateinit var forward: ImageView
@@ -30,6 +33,8 @@ class MusicFragment() : Fragment() {
     lateinit var seekBar: SeekBar
     private var musicList: ArrayList<MyMusic> = arrayListOf()
     var currentIndex: Int = 0
+
+    private lateinit var handler: Handler
 
     val musicViewmodel: MusicViewmodel by activityViewModels()
 
@@ -47,6 +52,7 @@ class MusicFragment() : Fragment() {
         initView(view)
         setList()
 
+        handler = Handler()
         musicViewmodel.setStart(musicList)
         musicViewmodel.currentSong.observe(viewLifecycleOwner, Observer {
             musicViewmodel.startMusic(it)
@@ -54,7 +60,14 @@ class MusicFragment() : Fragment() {
             Log.d("name", it.name)
             Glide.with(this.requireContext()).load(it.image).into(image)
             Glide.with(this.requireContext()).load(it.image).into(rlImage)
+            updateSeekBar()
         })
+
+        musicViewmodel.duration.observe(viewLifecycleOwner, Observer {
+            seekBar.max = it
+            lastDuration.text = getTime(it.toLong())
+        })
+
         changeResources(currentIndex)
 
 
@@ -71,6 +84,9 @@ class MusicFragment() : Fragment() {
             previousMusic()
         }
 
+//        val time = musicViewmodel.changeTime()
+//        startDuration.text = time
+
         playlistOpen.setOnClickListener {
 
 //            var unit: MyMusic? = null
@@ -79,33 +95,56 @@ class MusicFragment() : Fragment() {
 //            })
 
             val ft = requireActivity().supportFragmentManager.beginTransaction()
-            ft.setCustomAnimations(
-                R.anim.fade_in,
-                R.anim.slide_up,
-                R.anim.fade_in,
-                R.anim.slide_down
-            )
+//            ft.setCustomAnimations(
+//                R.anim.fade_in,
+//                R.anim.slide_up,
+//                R.anim.fade_in,
+//                R.anim.slide_down
+//            )
             musicViewmodel.pause()
             ft.addToBackStack(null)
                 .replace(R.id.frame, MusicListFragment(musicList)).commit()
         }
 
-//        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-//            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, changed: Boolean) {
-//                if (changed) {
-//                    musicViewmodel.changeSeek(progress)
-//                }
-//            }
-//
-//            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-//            }
-//
-//            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-//            }
-//
-//        })
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    musicViewmodel.mediaPlayer.seekTo(progress)
+                    seekBar?.progress = progress
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+
+            }
+
+        })
 
 
+    }
+
+    private fun getTime(millis: Long): String? {
+        val buf = StringBuffer()
+        val minutes = (millis % (1000 * 60 * 60) / (1000 * 60)).toInt()
+        val seconds = (millis % (1000 * 60 * 60) % (1000 * 60) / 1000).toInt()
+        buf.append(String.format("%02d", minutes))
+            .append(":")
+            .append(String.format("%02d", seconds))
+        return buf.toString()
+    }
+
+    private fun updateSeekBar() {
+        val currentPosition = musicViewmodel.mediaPlayer.currentPosition
+        seekBar.progress = currentPosition
+        val runnable = Runnable {
+            updateSeekBar()
+            startDuration.text = getTime(musicViewmodel.mediaPlayer.currentPosition.toLong())
+        }
+        handler.postDelayed(runnable, 1000)
     }
 
     private fun previousMusic() {
@@ -151,6 +190,7 @@ class MusicFragment() : Fragment() {
     }
 
     private fun setList() {
+        musicList.clear()
         musicList.add(
             MyMusic(
                 "Believer (Pop Rock) - Imagine Dragons",
@@ -183,6 +223,23 @@ class MusicFragment() : Fragment() {
         )
         musicList.add(MyMusic("Shor Machega - Honey Singh", R.drawable.shor, R.raw.shor_machega))
         musicList.add(MyMusic("Tu Aake Dekhle - King ", R.drawable.tuaake, R.raw.tu_aake_dekh))
+        musicList.add(
+            MyMusic(
+                "Intentions - Justin Bieber",
+                R.drawable.intentions,
+                R.raw.intentions
+            )
+        )
+        musicList.add(MyMusic("Peaches - Justin Bieber", R.drawable.peaches, R.raw.peaches))
+        musicList.add(
+            MyMusic(
+                "Let Me Love You - Justin Bieber",
+                R.drawable.letmelove,
+                R.raw.letmeloveyou
+            )
+        )
+        musicList.add(MyMusic("Tum Dil Ki Dhadkan", R.drawable.dhadhkan, R.raw.dhadkan))
+        musicList.add(MyMusic("Kale Je Libaas - KAKA", R.drawable.libaas, R.raw.libaas))
     }
 
     private fun initView(view: View) {
@@ -196,25 +253,9 @@ class MusicFragment() : Fragment() {
         forward = view.findViewById(R.id.forward)
         backward = view.findViewById(R.id.backward)
         seekBar = view.findViewById(R.id.seekbar)
+        startDuration = view.findViewById(R.id.start_duration)
+        lastDuration = view.findViewById(R.id.end_duration)
 
     }
-
-//    override fun onStop() {
-//        musicViewmodel.stopMusic()
-//        super.onStop()
-//    }
-//
-//    override fun onPause() {
-//        musicViewmodel.stopMusic()
-//        super.onPause()
-//    }
-//
-//    override fun onResume() {
-//        musicViewmodel.currentSong.observe(viewLifecycleOwner, {
-//            musicViewmodel.startMusic(it)
-//            musicViewmodel.playMusic()
-//        })
-//        super.onResume()
-//    }
 
 }
