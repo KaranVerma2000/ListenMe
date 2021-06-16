@@ -7,7 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 import com.bumptech.glide.Glide
 import com.example.listenme.Data.MyMusic
 import com.example.listenme.R
@@ -26,18 +27,17 @@ class MusicFragment() : Fragment() {
     lateinit var backward: ImageView
     lateinit var playlist: LinearLayout
     lateinit var back_frag: ImageView
-    lateinit var musicViewmodel: MusicViewmodel
     lateinit var seekBar: SeekBar
     private var musicList: ArrayList<MyMusic> = arrayListOf()
     var currentIndex: Int = 0
 
+    val musicViewmodel: MusicViewmodel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        musicViewmodel = ViewModelProvider(this).get(MusicViewmodel::class.java)
         return inflater.inflate(R.layout.fragment_music, container, false)
     }
 
@@ -47,11 +47,14 @@ class MusicFragment() : Fragment() {
         initView(view)
         setList()
 
-        musicViewmodel.startMusic(musicList[currentIndex])
-        name.text = musicList[currentIndex].name
-        Log.d("name", musicList[currentIndex].name)
-        Glide.with(this.requireContext()).load(musicList[currentIndex].image).into(image)
-        Glide.with(this.requireContext()).load(musicList[currentIndex].image).into(rlImage)
+        musicViewmodel.setStart(musicList)
+        musicViewmodel.currentSong.observe(viewLifecycleOwner, Observer {
+            musicViewmodel.startMusic(it)
+            name.text = it.name
+            Log.d("name", it.name)
+            Glide.with(this.requireContext()).load(it.image).into(image)
+            Glide.with(this.requireContext()).load(it.image).into(rlImage)
+        })
         changeResources(currentIndex)
 
 
@@ -69,10 +72,11 @@ class MusicFragment() : Fragment() {
         }
 
         playlistOpen.setOnClickListener {
-            var unit: MyMusic? = null
-            musicViewmodel.currentSong.observe(viewLifecycleOwner, {
-                unit = it
-            })
+
+//            var unit: MyMusic? = null
+//            musicViewmodel.currentSong.observe(viewLifecycleOwner, {
+//                unit = it
+//            })
 
             val ft = requireActivity().supportFragmentManager.beginTransaction()
             ft.setCustomAnimations(
@@ -81,8 +85,9 @@ class MusicFragment() : Fragment() {
                 R.anim.fade_in,
                 R.anim.slide_down
             )
+            musicViewmodel.pause()
             ft.addToBackStack(null)
-                .replace(R.id.frame, MusicListFragment(musicList, unit, musicViewmodel)).commit()
+                .replace(R.id.frame, MusicListFragment(musicList)).commit()
         }
 
 //        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -135,14 +140,14 @@ class MusicFragment() : Fragment() {
             }
         })
 
-        musicViewmodel.currentSong.observe(viewLifecycleOwner, {
-            if (it != null) {
-                Log.d("MusicSong", it.toString())
-                name.text = it.name
-                Glide.with(this.requireContext()).load(it.image).into(image)
-                Glide.with(this.requireContext()).load(it.image).into(rlImage)
-            }
-        })
+//        musicViewmodel.currentSong.observe(viewLifecycleOwner, {
+//            if (it != null) {
+//                Log.d("MusicSong", it.toString())
+//                name.text = it.name
+//                Glide.with(this.requireContext()).load(it.image).into(image)
+//                Glide.with(this.requireContext()).load(it.image).into(rlImage)
+//            }
+//        })
     }
 
     private fun setList() {
@@ -194,22 +199,22 @@ class MusicFragment() : Fragment() {
 
     }
 
-    override fun onStop() {
-        musicViewmodel.stopMusic()
-        super.onStop()
-    }
-
-    override fun onPause() {
-        musicViewmodel.stopMusic()
-        super.onPause()
-    }
-
-    override fun onResume() {
-        musicViewmodel.currentSong.observe(viewLifecycleOwner, {
-            musicViewmodel.startMusic(it)
-            musicViewmodel.playMusic()
-        })
-        super.onResume()
-    }
+//    override fun onStop() {
+//        musicViewmodel.stopMusic()
+//        super.onStop()
+//    }
+//
+//    override fun onPause() {
+//        musicViewmodel.stopMusic()
+//        super.onPause()
+//    }
+//
+//    override fun onResume() {
+//        musicViewmodel.currentSong.observe(viewLifecycleOwner, {
+//            musicViewmodel.startMusic(it)
+//            musicViewmodel.playMusic()
+//        })
+//        super.onResume()
+//    }
 
 }

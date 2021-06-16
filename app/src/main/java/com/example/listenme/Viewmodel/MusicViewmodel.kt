@@ -12,10 +12,6 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
 
     private var mediaPlayer: MediaPlayer = MediaPlayer()
 
-    private val _musicList = MutableLiveData<List<MyMusic>>()
-    val musicList: LiveData<List<MyMusic>>
-        get() = _musicList
-
     private val _playMusic = MutableLiveData<Boolean>()
     val playMusic: LiveData<Boolean>
         get() = _playMusic
@@ -27,6 +23,10 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
     private val _previousIndex = MutableLiveData<Int>()
     val previousIndex: LiveData<Int>
         get() = _previousIndex
+
+    private val _currentIndex = MutableLiveData<Int>()
+    val currentIndex: LiveData<Int>
+        get() = _currentIndex
 
     private val _currentSong = MutableLiveData<MyMusic>()
     val currentSong: LiveData<MyMusic>
@@ -46,19 +46,21 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
             mediaPlayer.start()
             _seek.postValue(mediaPlayer.currentPosition)
         } else {
+            Log.d("Karan ", "null")
             mediaPlayer =
                 MediaPlayer.create(getApplication<Application>().applicationContext, index.music)
         }
     }
 
-    fun continueSong() {
-        if (mediaPlayer.isPlaying) {
+    fun playSong(song: MyMusic){
+        if (mediaPlayer != MediaPlayer.create(getApplication(), song.music)) {
+            mediaPlayer.stop()
+            mediaPlayer.release()
+            mediaPlayer = MediaPlayer.create(getApplication(), song.music)
+            _duration.value = mediaPlayer.duration
             mediaPlayer.start()
-            _seek.postValue(mediaPlayer.currentPosition)
-        } else {
-            mediaPlayer.pause()
-            _seek.postValue(mediaPlayer.currentPosition)
         }
+        _playMusic.value = true
     }
 
 
@@ -77,8 +79,8 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
     fun adapterSong(myMusic: MyMusic, position: Int) {
         _currentSong.postValue(myMusic)
         _changeIndex.postValue(position)
-        playMusic()
-        startMusic(myMusic)
+//        playMusic()
+        playSong(myMusic)
     }
 
     fun nextSong(list: ArrayList<MyMusic>, currentIndex: Int) {
@@ -89,7 +91,7 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
             0
         }
         if (mediaPlayer.isPlaying) {
-            mediaPlayer.stop()
+            mediaPlayer.pause()
             _seek.postValue(mediaPlayer.currentPosition)
             _playMusic.postValue(true)
         }
@@ -99,6 +101,7 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         _seek.postValue(mediaPlayer.currentPosition)
         _playMusic.postValue(false)
         _changeIndex.postValue(index)
+        _currentIndex.postValue(index)
         _currentSong.postValue(list[index])
     }
 
@@ -111,7 +114,7 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         }
         if (mediaPlayer.isPlaying) {
             _seek.postValue(mediaPlayer.currentPosition)
-            mediaPlayer.stop()
+            mediaPlayer.pause()
             _playMusic.postValue(true)
         }
         mediaPlayer =
@@ -119,10 +122,21 @@ class MusicViewmodel(application: Application) : AndroidViewModel(application) {
         mediaPlayer.start()
         _seek.postValue(mediaPlayer.currentPosition)
         _playMusic.postValue(false)
-
+        _currentIndex.postValue(index)
         _previousIndex.postValue(index)
         _currentSong.postValue(list[index])
     }
+
+    fun setStart(myMusic: ArrayList<MyMusic>){
+        if (_currentSong.value == null){
+            _currentSong.value = myMusic[0]
+            _currentIndex.value = 0
+            mediaPlayer = MediaPlayer.create(getApplication(), myMusic[0].music)
+            playMusic()
+            _playMusic.value = false
+        }
+    }
+
 
     fun changeSeek(position: Int){
         mediaPlayer.seekTo(position)

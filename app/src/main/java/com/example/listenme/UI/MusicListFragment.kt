@@ -12,6 +12,7 @@ import android.widget.SearchView
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,11 +22,8 @@ import com.example.listenme.R
 import com.example.listenme.Viewmodel.MusicViewmodel
 
 class MusicListFragment(
-    private val musicList: ArrayList<MyMusic>,
-    private val unit: MyMusic?,
-    private val viewmodel: MusicViewmodel,
-) :
-    Fragment() {
+    private val musicList: ArrayList<MyMusic>
+) : Fragment() {
 
     lateinit var playlistRecyclerView: RecyclerView
     lateinit var search: SearchView
@@ -34,6 +32,8 @@ class MusicListFragment(
     lateinit var bottomName: TextView
     lateinit var bottom_play: ImageView
     lateinit var bottomRl: RelativeLayout
+
+    val viewmodel: MusicViewmodel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -50,8 +50,8 @@ class MusicListFragment(
         setRecyclerView()
         setResources()
 
-        bottomRl.setOnClickListener {
 
+        bottomRl.setOnClickListener {
             viewmodel.pause()
             requireActivity().supportFragmentManager.beginTransaction()
                 .replace(R.id.frame, MusicFragment()).commit()
@@ -71,6 +71,8 @@ class MusicListFragment(
     }
 
     private fun setResources() {
+
+
         viewmodel.playMusic.observe(viewLifecycleOwner, {
             Log.d("songPlay", it.toString())
             if (it == false) {
@@ -80,14 +82,15 @@ class MusicListFragment(
             }
         })
 
-        viewmodel.continueSong()
-
-        bottomName.text = musicList[0].name
-        Glide.with(this.requireContext()).load(musicList[0].image).into(bottomImage)
+//        viewmodel.continueSong()
+//
+//        bottomName.text = musicList[0].name
+//        Glide.with(this.requireContext()).load(musicList[0].image).into(bottomImage)
 
         viewmodel.currentSong.observe(viewLifecycleOwner, {
             Log.d("Song", it.toString())
             if (it != null) {
+                viewmodel.playMusic()
                 bottomName.text = it.name
                 Glide.with(this.requireContext()).load(it.image).into(bottomImage)
             }
@@ -95,8 +98,11 @@ class MusicListFragment(
     }
 
     private fun setRecyclerView() {
+        val adapter = PlaylistAdapter(this, musicList, viewmodel)
         playlistRecyclerView.layoutManager = LinearLayoutManager(this.requireContext())
-        playlistRecyclerView.adapter = PlaylistAdapter(this, musicList, viewmodel)
+        playlistRecyclerView.adapter = adapter
+        adapter.notifyDataSetChanged()
+
     }
 
     private fun initView(view: View) {
@@ -108,21 +114,21 @@ class MusicListFragment(
         bottomRl = view.findViewById(R.id.bottom_rl)
     }
 
-    override fun onPause() {
-        viewmodel.stopMusic()
-        super.onPause()
-    }
-
-    override fun onResume() {
-        viewmodel.currentSong.observe(viewLifecycleOwner, {
-            viewmodel.startMusic(it)
-            viewmodel.playMusic()
-        })
-        super.onResume()
-    }
-
-    override fun onStop() {
-        viewmodel.stopMusic()
-        super.onStop()
-    }
+//    override fun onPause() {
+//        viewmodel.stopMusic()
+//        super.onPause()
+//    }
+//
+//    override fun onResume() {
+//        viewmodel.currentSong.observe(viewLifecycleOwner, {
+//            viewmodel.startMusic(it)
+//            viewmodel.playMusic()
+//        })
+//        super.onResume()
+//    }
+//
+//    override fun onStop() {
+//        viewmodel.stopMusic()
+//        super.onStop()
+//    }
 }
